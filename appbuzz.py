@@ -58,9 +58,10 @@ with tab3:
     st.header("Tweet Conversation")
     with st.form(key='Twitter_form'):
         search_term = st.text_input('What topic do you want to search for?')
-        limit = st.slider('How many tweets do you want to get?',1,100)
-        day_before = st.slider("What is the number of days before today that you want to retrieve the tweet from?",1,30)
-        
+        #limit = st.slider('How many tweets do you want to get?',1,100)
+        limit = 100
+        #day_before = st.slider("What is the number of days before today that you want to retrieve the tweet from?",1,30)
+        day_before = 1
         current_date = datetime.date.today()
         formatted_date = current_date.strftime('%Y-%m-%d')
         previous_date = current_date - datetime.timedelta(days=day_before)
@@ -91,6 +92,7 @@ with tab3:
             tweets_df_with_pred = pd.concat([tweets_df2, prediction_df], axis=1)
             tweets_df_with_pred = tweets_df_with_pred[tweets_df_with_pred['Predicted']==0]
             tweets_df_with_pred = tweets_df_with_pred[['Text','Username']]
+            tweets_df_with_pred = tweets_df_with_pred.reset_index().drop(columns='index')
             #st.table(tweets_df_with_pred)
             #pd.set_option('display.max_rows', None)
             # CSS to inject contained in a string
@@ -103,4 +105,4 @@ with tab3:
             if tweets_df_with_pred.empty:
                 st.write("Topik ini kemungkinan besar mengandung Pembentukan Opini publik")
             else:
-                st.table(tweets_df2)
+                st.table(tweets_df_with_pred)
