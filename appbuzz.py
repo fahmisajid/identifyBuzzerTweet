@@ -1,12 +1,15 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+import torch
 
 import snscrape.modules.twitter as sntwitter
 import datetime
 import pickle 
 
 import warnings
+import account_classifier as ac
+
 warnings.filterwarnings('ignore')
 
 st.set_page_config(page_title="App Name")
@@ -27,6 +30,12 @@ with open("countvect", 'rb') as file:
 #load IDF Weight
 with open("tfidf", 'rb') as file:
     tfidf_transformer = pickle.load(file)
+
+# load GNN model
+GNN_PATH = "model_new_format_v2.pt"
+gnn = torch.load(GNN_PATH)
+gnn.eval()
+
 
 with tab1:
     #input text
@@ -51,7 +60,37 @@ with tab1:
 
 with tab2:
     #input text
-    akun = st.text_input('Input Account:') 
+    akun = st.text_input('Input Account:')
+    
+    if akun:
+        # get tweets and account details
+        accounts =[akun]
+
+        raw_users, raw_tweets = ac.get_tweets_new_format(accounts)
+        processed_data = ac.pre_process(raw_users, raw_tweets)
+        
+        
+        #Predict new text
+        p = ac.predict(gnn, processed_data)
+
+        buzzer = p[0].item() == 1
+
+        # 1 buzzer, 0 non buzzer
+        location = raw_users[0]["location"]
+        created_at = raw_users[0]["created_at"]
+        protected = raw_users[0]["protected"]
+        favourites_count = raw_users[0]["favourites_count"]
+        followers_count = raw_users[0]["followers_count"]
+        friends_count = raw_users[0]["friends_count"]
+        verified = "True" if raw_users[0]["verified"] == 1 else "False"
+        statuses_count = raw_users[0]["statuses_count"]
+        label = "Akun ini kemungkinan mempromosikan atau membentuk opini publik." if buzzer >= 1 else "Akun ini tidak mencoba mempengaruhi opini publik secara berlebihan."
+        stats = f"Verified: {verified} | Followers: {followers_count} | Following: {friends_count} | Location: {location} | Since: {created_at} | Favourites: {favourites_count} | Tweets: {statuses_count}"
+        #label = f"{label} ({prediction_proba[0][1]})"
+
+        st.subheader("Hasil prediksi:")
+        st.write(label)
+        st.write(stats)
 
 #Tweet Conversation Feature
 with tab3:
