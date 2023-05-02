@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 import torch
 import time
-import snscrape.modules.twitter as sntwitter
+#import snscrape.modules.twitter as sntwitter
 import datetime
 import pickle 
 
@@ -149,11 +149,11 @@ with tab3:
                 if submit_button:
                     tweets_list2 = []
                     # Using TwitterSearchScraper to scrape data and append tweets to list
-                    for i,tweet in enumerate(sntwitter.TwitterSearchScraper(search_term + ' since:'+since_date+' until:'+formatted_date).get_items()):
+                    """for i,tweet in enumerate(sntwitter.TwitterSearchScraper(search_term + ' since:'+since_date+' until:'+formatted_date).get_items()):
                         if i>limit-1:
                             break
-                        tweets_list2.append([tweet.content, tweet.user.username])
-                        
+                        tweets_list2.append([tweet.content, tweet.user.username])"""
+                    raise TypeError("Scrapping Lib still Error")    
                     # Creating a dataframe from the tweets list above
                     tweets_df2 = pd.DataFrame(tweets_list2, columns=['Text', 'Username'])
                     
