@@ -177,3 +177,20 @@ def get_tweets_new_format(accounts, save_to_file=False, load_from_file=False, pa
 # print(p[0].item())
 
 
+def get_flattened_tweets(raw_tweets):
+  flattened_tweets = []
+  for _id in raw_tweets:
+    r = raw_tweets[_id]
+    flattened_tweets.append(dict(
+        id=_id,
+        username=r["username"],
+        full_text=r["content"],
+        user_mentions=r["mentions"],
+        n_video_media=len(r["videos"]),
+        n_photo_media=len(r["images"]),
+        retweet_count=r["retweets"],
+        favorite_count=r["likes"],
+        replies=r["replies"],
+        is_retweet = 1 if r["is_retweet"] else 0
+    ))
+  return pd.DataFrame(flattened_tweets)

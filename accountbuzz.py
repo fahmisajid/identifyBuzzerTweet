@@ -43,6 +43,7 @@ with tab1:
     #input text
     sentence = st.text_input('Masukkan Opini:') 
 
+    predict_text_start = time.time()
     #transform/Extract (TF-IDF) new text 
     text_new =[sentence]
     X_new_counts = count_vect.transform(text_new)
@@ -51,6 +52,7 @@ with tab1:
     #Predict new text
     prediction = classifier.predict(X_new_tfidf)
     prediction_proba = classifier.predict_proba(X_new_tfidf)
+    predict_text_time = time.time() - predict_text_start
 
     # 1 buzzer, 2 non buzzer
     label = "Tweet ini kemungkinan sedang mempromosikan atau membentuk opini publik." if prediction_proba[0][1] >= 0.7 else "Tweet ini tidak mencoba mempengaruhi opini publik secara berlebihan."
@@ -64,10 +66,14 @@ with tab1:
             st.warning("Peringatan: Kalimat setidaknya memiliki 2 kata", icon="⚠️")
         else:
             st.subheader("Hasil prediksi:")
-            st.write(label) 
+            st.write(label)
+            st.subheader("Waktu prediksi:")
+            st.write(f"{round(predict_text_time, 3)}s")
 
 #tab2 - Accpunt Buzzer Detection
 with tab2:
+    get_tweet_time = 0
+    predict_time = 0
     #Define Matrix Info for an Account
     col21, col22, col23 = st.columns(3)
     col24, col25, col26 = st.columns(3)
@@ -80,14 +86,19 @@ with tab2:
 
         accounts =[akun]
         try:
+            start_get_tweet = time.time()
             raw_users, raw_tweets = ac.get_tweets_new_format(accounts)
+            get_tweet_time = time.time() - start_get_tweet
         except:
             st.warning("Maaf, akun yang Anda masukkan tidak ditemukan. Pastikan akun yang dimasukkan benar atau cek kembali penulisan username-nya.", icon="🚨")
+        
+        start_predict = time.time()
         processed_data = ac.pre_process(raw_users, raw_tweets)
         
         
         #Predict new text
         p = ac.predict(gnn, processed_data)
+        predict_time =  time.time() - start_predict
 
         buzzer = p[0].item() == 1
 
@@ -117,10 +128,14 @@ with tab2:
         col26.metric("Tanggal Akun dibuat", datecreated)
         st.subheader("Hasil prediksi:")
         st.write(label)
+        st.subheader("Waktu prediksi:")
+        st.write(f"{round(get_tweet_time, 3)}s for getting tweets and {round(predict_time, 3)}s for prediction")
         #st.write(stats)
 
-        akun = ""
+        tweets = ac.get_flattened_tweets(raw_tweets)[["full_text", "is_retweet", "n_video_media", "n_photo_media",	"retweet_count","favorite_count",	"replies"]]
+        st.table(tweets)
 
+        akun = ""
 #
 with tab3:
     col1, col2, col3 = st.columns(3)
@@ -188,6 +203,7 @@ with tab3:
         uploaded_file = st.file_uploader("Choose a file") 
         #col4 = st.columns(1)
         if uploaded_file is not None:
+            predict_file_start = time.time()
             dataframe = pd.read_csv(uploaded_file)
             st.write("filename:", uploaded_file.name)
             
@@ -202,19 +218,25 @@ with tab3:
             prediction_df = pd.DataFrame({'Predicted': prediction, 'Prediction_Probability': prediction_proba[:,1]})
             # Concatenate the new DataFrame with the original DataFrame
             tweets_df_with_pred = pd.concat([dataframe, prediction_df], axis=1)
+            tweets_df_with_pred["Detected as Buzzer"] = tweets_df_with_pred["Predicted"].apply(lambda x: "Yes" if x == 1 else "No")
             tweets_buzzer = tweets_df_with_pred[tweets_df_with_pred['Predicted']==1]
             tweets_Genuine = tweets_df_with_pred[tweets_df_with_pred['Predicted']==0]
+            
+            predict_file_time = time.time() - predict_file_start
             tweets_Genuine = tweets_Genuine.reset_index().drop(columns='index')
             #tweets_df_with_pred = tweets_df_with_pred[tweets_df_with_pred['Predicted']==0]
             tweets_df_with_pred = tweets_df_with_pred[['Text','Username']]
             tweets_df_with_pred = tweets_df_with_pred.reset_index().drop(columns='index')
+
+            st.subheader("Waktu prediksi:")
+            st.write(f"{round(predict_file_time, 3)}s")
             
-            st.table(tweets_Genuine[['Text','Username']])
+            st.table(tweets_Genuine[['Text','Username', 'Detected as Buzzer']])
 
             if tweets_df_with_pred.empty:
                 st.write("Topik ini kemungkinan besar mengandung Pembentukan Opini publik")
             else:
-                st.table(tweets_Genuine[['Text','Username']])
+                st.table(tweets_buzzer[['Text','Username', 'Detected as Buzzer']])
 
             col1.metric("Talker", tweets_df_with_pred.shape[0])
             col2.metric("Buzzer", tweets_buzzer.shape[0])
