@@ -11,14 +11,15 @@ import warnings
 
 import os
 
-@st.experimental_singleton
-def installff():
-  os.system('sbase install geckodriver')
-  os.system('ln -s /home/appuser/venv/lib/python3.7/site-packages/seleniumbase/drivers/geckodriver /home/appuser/venv/bin/geckodriver')
 
 import account_classifier as ac
 
 st.set_page_config(page_title="App Name")
+
+@st.experimental_singleton
+def installff():
+  os.system('sbase install chrome')
+  os.system('ln -s /home/appuser/venv/lib/python3.7/site-packages/seleniumbase/drivers/geckodriver /home/appuser/venv/bin/geckodriver')
 
 st.title("TUTI - Tweet Buzzer Detection")
 
