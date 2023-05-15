@@ -98,52 +98,53 @@ with tab2:
             start_get_tweet = time.time()
             raw_users, raw_tweets = ac.get_tweets_new_format(accounts)
             get_tweet_time = time.time() - start_get_tweet
+        
+            start_predict = time.time()
+            processed_data = ac.pre_process(raw_users, raw_tweets)
+            
+            
+            #Predict new text
+            p = ac.predict(gnn, processed_data)
+            predict_time =  time.time() - start_predict
+
+            buzzer = p[0].item() == 1
+
+            # 1 buzzer, 0 non buzzer
+            location = raw_users[0]["location"]
+            created_at = raw_users[0]["created_at"]
+            protected = raw_users[0]["protected"]
+            favourites_count = raw_users[0]["favourites_count"]
+            followers_count = raw_users[0]["followers_count"]
+            friends_count = raw_users[0]["friends_count"]
+            verified = "True" if raw_users[0]["verified"] == 1 else "False"
+            statuses_count = raw_users[0]["statuses_count"]
+            label = "Akun ini kemungkinan mempromosikan atau membentuk opini publik." if buzzer >= 1 else "Akun ini tidak mencoba mempengaruhi opini publik secara berlebihan."
+            stats = f"Verified: {verified} | Followers: {followers_count} | Following: {friends_count} | Location: {location} | Since: {created_at} | Favourites: {favourites_count} | Tweets: {statuses_count}"
+            #label = f"{label} ({prediction_proba[0][1]})"
+
+            date_list = created_at.split()
+            month = date_list[1]
+            day = date_list[2]
+            year = date_list[-1]
+            datecreated = day + " " + month + " " + year
+            col21.metric("Nama Akun", akun)
+            col22.metric("Verified", verified)
+            col23.metric("Lokasi", location)
+            col24.metric("Jumlah Pengikut", followers_count)
+            col25.metric("Jumlah yang diikuti", friends_count)
+            col26.metric("Tanggal Akun dibuat", datecreated)
+            st.subheader("Hasil prediksi:")
+            st.write(label)
+            st.subheader("Waktu prediksi:")
+            st.write(f"{round(get_tweet_time, 3)}s for getting tweets and {round(predict_time, 3)}s for prediction")
+            #st.write(stats)
+
+            tweets = ac.get_flattened_tweets(raw_tweets)[["full_text", "is_retweet", "n_video_media", "n_photo_media",	"retweet_count","favorite_count",	"replies"]]
+            st.table(tweets)
+
         except:
             st.warning("Maaf, akun yang Anda masukkan tidak ditemukan. Pastikan akun yang dimasukkan benar atau cek kembali penulisan username-nya.", icon="🚨")
         
-        start_predict = time.time()
-        processed_data = ac.pre_process(raw_users, raw_tweets)
-        
-        
-        #Predict new text
-        p = ac.predict(gnn, processed_data)
-        predict_time =  time.time() - start_predict
-
-        buzzer = p[0].item() == 1
-
-        # 1 buzzer, 0 non buzzer
-        location = raw_users[0]["location"]
-        created_at = raw_users[0]["created_at"]
-        protected = raw_users[0]["protected"]
-        favourites_count = raw_users[0]["favourites_count"]
-        followers_count = raw_users[0]["followers_count"]
-        friends_count = raw_users[0]["friends_count"]
-        verified = "True" if raw_users[0]["verified"] == 1 else "False"
-        statuses_count = raw_users[0]["statuses_count"]
-        label = "Akun ini kemungkinan mempromosikan atau membentuk opini publik." if buzzer >= 1 else "Akun ini tidak mencoba mempengaruhi opini publik secara berlebihan."
-        stats = f"Verified: {verified} | Followers: {followers_count} | Following: {friends_count} | Location: {location} | Since: {created_at} | Favourites: {favourites_count} | Tweets: {statuses_count}"
-        #label = f"{label} ({prediction_proba[0][1]})"
-
-        date_list = created_at.split()
-        month = date_list[1]
-        day = date_list[2]
-        year = date_list[-1]
-        datecreated = day + " " + month + " " + year
-        col21.metric("Nama Akun", akun)
-        col22.metric("Verified", verified)
-        col23.metric("Lokasi", location)
-        col24.metric("Jumlah Pengikut", followers_count)
-        col25.metric("Jumlah yang diikuti", friends_count)
-        col26.metric("Tanggal Akun dibuat", datecreated)
-        st.subheader("Hasil prediksi:")
-        st.write(label)
-        st.subheader("Waktu prediksi:")
-        st.write(f"{round(get_tweet_time, 3)}s for getting tweets and {round(predict_time, 3)}s for prediction")
-        #st.write(stats)
-
-        tweets = ac.get_flattened_tweets(raw_tweets)[["full_text", "is_retweet", "n_video_media", "n_photo_media",	"retweet_count","favorite_count",	"replies"]]
-        st.table(tweets)
-
         akun = ""
 #
 with tab3:
