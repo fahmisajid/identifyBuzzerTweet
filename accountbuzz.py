@@ -92,6 +92,7 @@ with tab2:
     if akun:
         # get tweets and account details
         accounts =[akun]
+        
         try:
             start_get_tweet = time.time()
             raw_users, raw_tweets = ac.get_tweets_new_format(accounts)
@@ -143,8 +144,11 @@ with tab2:
             tweets = ac.get_flattened_tweets(raw_tweets)[["full_text", "is_retweet", "n_video_media", "n_photo_media",	"retweet_count","favorite_count",	"replies"]]
             st.table(tweets)
 
-        except:
-            st.warning("Maaf, akun yang Anda masukkan tidak ditemukan. Pastikan akun yang dimasukkan benar atau cek kembali penulisan username-nya.", icon="🚨")
+        except Exception as e:
+            if time.time() - start_get_tweet > 10:
+                st.warning("Maaf, akun yang Anda masukkan tidak ditemukan. Pastikan akun yang dimasukkan benar atau cek kembali penulisan username-nya.", icon="🚨")
+            else:
+                st.warning("Maaf, saat ini terdapat kendala akses ke jaringan Twitter melalui IP server. Silahkan coba kembali dalam beberapa jam kedepan.", icon="🚨")
         
         akun = ""
 #
