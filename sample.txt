@@ -1,0 +1,23 @@
+Account classifier:
+===================
+buzzer:
+AlMawardin7
+Srik4ndiMuslim2
+StefanAntonio__
+
+non buzzer:
+officialdewa19
+NOAH_ID
+marioteguh
+
+Text classifier:
+================
+buzzer:
+coba tu liat pak jokowi bilang sontoloyo langsung bikin statement itu kasar   padahal diri sendiri suka nyerang pak jokowi dg berbagai hoax  ngeselin kan y
+
+non buzzer:
+oiya sebagai manusia kita wajib saling memaafkan tapi sebagai negara hukum ya harus ditegakka
+
+Conversation Analyzer:
+=====================
+data/data_sample100.csv

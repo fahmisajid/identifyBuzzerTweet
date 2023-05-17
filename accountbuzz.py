@@ -16,10 +16,10 @@ import account_classifier as ac
 
 st.set_page_config(page_title="App Name")
 
-@st.experimental_singleton
-def installff():
-  os.system('sbase install chrome')
-  os.system('ln -s /home/appuser/venv/lib/python3.7/site-packages/seleniumbase/drivers/geckodriver /home/appuser/venv/bin/geckodriver')
+# @st.experimental_singleton
+# def installff():
+#   os.system('sbase install chrome')
+#   os.system('ln -s /home/appuser/venv/lib/python3.7/site-packages/seleniumbase/drivers/geckodriver /home/appuser/venv/bin/geckodriver')
 
 st.title("TUTI - Tweet Buzzer Detection")
 
@@ -63,11 +63,7 @@ with tab1:
     prediction_proba = classifier.predict_proba(X_new_tfidf)
     predict_text_time = time.time() - predict_text_start
 
-    # 1 buzzer, 2 non buzzer
-    label = "Tweet ini kemungkinan sedang mempromosikan atau membentuk opini publik." if prediction_proba[0][1] >= 0.7 else "Tweet ini tidak mencoba mempengaruhi opini publik secara berlebihan."
-    #label = f"{label} ({prediction_proba[0][1]})"
-
-
+    
     if sentence:
         if len(sentence) > 280:
             st.warning('Peringatan: Jumlah kata yang kamu inputkan melebihi batas karakter maksimal 280 kata. Silakan periksa kembali teks yang kamu masukkan.', icon="⚠️")
@@ -75,7 +71,10 @@ with tab1:
             st.warning("Peringatan: Kalimat setidaknya memiliki 2 kata", icon="⚠️")
         else:
             st.subheader("Hasil prediksi:")
-            st.write(label)
+            if prediction_proba[0][1] >= 0.7:
+                st.warning("Tweet ini kemungkinan sedang mempromosikan atau membentuk opini publik.", icon="🚨")
+            else:
+                st.success("Tweet ini tidak mencoba mempengaruhi opini publik secara berlebihan.", icon="✅")
             st.subheader("Waktu prediksi:")
             st.write(f"{round(predict_text_time, 3)}s")
 
@@ -89,10 +88,9 @@ with tab2:
 
     #input Account
     akun = ""
-    akun = st.text_input('Masukkan Akun:')  
+    akun = st.text_input('Masukkan Akun:',key='account_key')  
     if akun:
         # get tweets and account details
-
         accounts =[akun]
         try:
             start_get_tweet = time.time()
@@ -118,8 +116,7 @@ with tab2:
             friends_count = raw_users[0]["friends_count"]
             verified = "True" if raw_users[0]["verified"] == 1 else "False"
             statuses_count = raw_users[0]["statuses_count"]
-            label = "Akun ini kemungkinan mempromosikan atau membentuk opini publik." if buzzer >= 1 else "Akun ini tidak mencoba mempengaruhi opini publik secara berlebihan."
-            stats = f"Verified: {verified} | Followers: {followers_count} | Following: {friends_count} | Location: {location} | Since: {created_at} | Favourites: {favourites_count} | Tweets: {statuses_count}"
+            # stats = f"Verified: {verified} | Followers: {followers_count} | Following: {friends_count} | Location: {location} | Since: {created_at} | Favourites: {favourites_count} | Tweets: {statuses_count}"
             #label = f"{label} ({prediction_proba[0][1]})"
 
             date_list = created_at.split()
@@ -134,7 +131,11 @@ with tab2:
             col25.metric("Jumlah yang diikuti", friends_count)
             col26.metric("Tanggal Akun dibuat", datecreated)
             st.subheader("Hasil prediksi:")
-            st.write(label)
+            if buzzer >= 1:
+                st.warning("Akun ini kemungkinan mempromosikan atau membentuk opini publik.", icon="🚨")
+            else:
+                st.success("Akun ini tidak mencoba mempengaruhi opini publik secara berlebihan.", icon="✅")
+            
             st.subheader("Waktu prediksi:")
             st.write(f"{round(get_tweet_time, 3)}s for getting tweets and {round(predict_time, 3)}s for prediction")
             #st.write(stats)
@@ -241,12 +242,22 @@ with tab3:
             st.subheader("Waktu prediksi:")
             st.write(f"{round(predict_file_time, 3)}s")
             
-            st.table(tweets_Genuine[['Text','Username', 'Detected as Buzzer']])
+            if "category" not in st.session_state:
+                st.session_state.category = "All"
+            st.radio(
+                "Tampilkan Tweet per kategori:",
+                key="category",
+                options=["All", "Buzzer", "Genuine"],
+            )
+
+            if st.session_state.category != "Buzzer":
+                st.table(tweets_Genuine[['Text','Username', 'Detected as Buzzer']])
 
             if tweets_df_with_pred.empty:
                 st.write("Topik ini kemungkinan besar mengandung Pembentukan Opini publik")
             else:
-                st.table(tweets_buzzer[['Text','Username', 'Detected as Buzzer']])
+                if st.session_state.category != "Genuine":
+                    st.table(tweets_buzzer[['Text','Username', 'Detected as Buzzer']])
 
             col1.metric("Talker", tweets_df_with_pred.shape[0])
             col2.metric("Buzzer", tweets_buzzer.shape[0])
