@@ -8,9 +8,18 @@ import datetime
 import pickle 
 
 import warnings
+
+import os
+
+
 import account_classifier as ac
 
 st.set_page_config(page_title="App Name")
+
+# @st.experimental_singleton
+# def installff():
+#   os.system('sbase install chrome')
+#   os.system('ln -s /home/appuser/venv/lib/python3.7/site-packages/seleniumbase/drivers/geckodriver /home/appuser/venv/bin/geckodriver')
 
 st.title("TUTI - Tweet Buzzer Detection")
 
@@ -54,11 +63,7 @@ with tab1:
     prediction_proba = classifier.predict_proba(X_new_tfidf)
     predict_text_time = time.time() - predict_text_start
 
-    # 1 buzzer, 2 non buzzer
-    label = "Tweet ini kemungkinan sedang mempromosikan atau membentuk opini publik." if prediction_proba[0][1] >= 0.7 else "Tweet ini tidak mencoba mempengaruhi opini publik secara berlebihan."
-    #label = f"{label} ({prediction_proba[0][1]})"
-
-
+    
     if sentence:
         if len(sentence) > 280:
             st.warning('Peringatan: Jumlah kata yang kamu inputkan melebihi batas karakter maksimal 280 kata. Silakan periksa kembali teks yang kamu masukkan.', icon="⚠️")
@@ -66,7 +71,10 @@ with tab1:
             st.warning("Peringatan: Kalimat setidaknya memiliki 2 kata", icon="⚠️")
         else:
             st.subheader("Hasil prediksi:")
-            st.write(label)
+            if prediction_proba[0][1] >= 0.7:
+                st.warning("Tweet ini kemungkinan sedang mempromosikan atau membentuk opini publik.", icon="🚨")
+            else:
+                st.success("Tweet ini tidak mencoba mempengaruhi opini publik secara berlebihan.", icon="✅")
             st.subheader("Waktu prediksi:")
             st.write(f"{round(predict_text_time, 3)}s")
 
@@ -80,61 +88,68 @@ with tab2:
 
     #input Account
     akun = ""
-    akun = st.text_input('Masukkan Akun:')  
+    akun = st.text_input('Masukkan Akun:',key='account_key')  
     if akun:
         # get tweets and account details
-
         accounts =[akun]
+        
         try:
             start_get_tweet = time.time()
             raw_users, raw_tweets = ac.get_tweets_new_format(accounts)
             get_tweet_time = time.time() - start_get_tweet
-        except:
-            st.warning("Maaf, akun yang Anda masukkan tidak ditemukan. Pastikan akun yang dimasukkan benar atau cek kembali penulisan username-nya.", icon="🚨")
         
-        start_predict = time.time()
-        processed_data = ac.pre_process(raw_users, raw_tweets)
+            start_predict = time.time()
+            processed_data = ac.pre_process(raw_users, raw_tweets)
+            
+            
+            #Predict new text
+            p = ac.predict(gnn, processed_data)
+            predict_time =  time.time() - start_predict
+
+            buzzer = p[0].item() == 1
+
+            # 1 buzzer, 0 non buzzer
+            location = raw_users[0]["location"]
+            created_at = raw_users[0]["created_at"]
+            protected = raw_users[0]["protected"]
+            favourites_count = raw_users[0]["favourites_count"]
+            followers_count = raw_users[0]["followers_count"]
+            friends_count = raw_users[0]["friends_count"]
+            verified = "True" if raw_users[0]["verified"] == 1 else "False"
+            statuses_count = raw_users[0]["statuses_count"]
+            # stats = f"Verified: {verified} | Followers: {followers_count} | Following: {friends_count} | Location: {location} | Since: {created_at} | Favourites: {favourites_count} | Tweets: {statuses_count}"
+            #label = f"{label} ({prediction_proba[0][1]})"
+
+            date_list = created_at.split()
+            month = date_list[1]
+            day = date_list[2]
+            year = date_list[-1]
+            datecreated = day + " " + month + " " + year
+            col21.metric("Nama Akun", akun)
+            col22.metric("Verified", verified)
+            col23.metric("Lokasi", location)
+            col24.metric("Jumlah Pengikut", followers_count)
+            col25.metric("Jumlah yang diikuti", friends_count)
+            col26.metric("Tanggal Akun dibuat", datecreated)
+            st.subheader("Hasil prediksi:")
+            if buzzer >= 1:
+                st.warning("Akun ini kemungkinan mempromosikan atau membentuk opini publik.", icon="🚨")
+            else:
+                st.success("Akun ini tidak mencoba mempengaruhi opini publik secara berlebihan.", icon="✅")
+            
+            st.subheader("Waktu prediksi:")
+            st.write(f"{round(get_tweet_time, 3)}s for getting tweets and {round(predict_time, 3)}s for prediction")
+            #st.write(stats)
+
+            tweets = ac.get_flattened_tweets(raw_tweets)[["full_text", "is_retweet", "n_video_media", "n_photo_media",	"retweet_count","favorite_count",	"replies"]]
+            st.table(tweets)
+
+        except Exception as e:
+            if time.time() - start_get_tweet > 10:
+                st.warning("Maaf, akun yang Anda masukkan tidak ditemukan. Pastikan akun yang dimasukkan benar atau cek kembali penulisan username-nya.", icon="🚨")
+            else:
+                st.warning("Maaf, saat ini terdapat kendala akses ke jaringan Twitter melalui IP server. Silahkan coba kembali dalam beberapa jam kedepan.", icon="🚨")
         
-        
-        #Predict new text
-        p = ac.predict(gnn, processed_data)
-        predict_time =  time.time() - start_predict
-
-        buzzer = p[0].item() == 1
-
-        # 1 buzzer, 0 non buzzer
-        location = raw_users[0]["location"]
-        created_at = raw_users[0]["created_at"]
-        protected = raw_users[0]["protected"]
-        favourites_count = raw_users[0]["favourites_count"]
-        followers_count = raw_users[0]["followers_count"]
-        friends_count = raw_users[0]["friends_count"]
-        verified = "True" if raw_users[0]["verified"] == 1 else "False"
-        statuses_count = raw_users[0]["statuses_count"]
-        label = "Akun ini kemungkinan mempromosikan atau membentuk opini publik." if buzzer >= 1 else "Akun ini tidak mencoba mempengaruhi opini publik secara berlebihan."
-        stats = f"Verified: {verified} | Followers: {followers_count} | Following: {friends_count} | Location: {location} | Since: {created_at} | Favourites: {favourites_count} | Tweets: {statuses_count}"
-        #label = f"{label} ({prediction_proba[0][1]})"
-
-        date_list = created_at.split()
-        month = date_list[1]
-        day = date_list[2]
-        year = date_list[-1]
-        datecreated = day + " " + month + " " + year
-        col21.metric("Nama Akun", akun)
-        col22.metric("Verified", verified)
-        col23.metric("Lokasi", location)
-        col24.metric("Jumlah Pengikut", followers_count)
-        col25.metric("Jumlah yang diikuti", friends_count)
-        col26.metric("Tanggal Akun dibuat", datecreated)
-        st.subheader("Hasil prediksi:")
-        st.write(label)
-        st.subheader("Waktu prediksi:")
-        st.write(f"{round(get_tweet_time, 3)}s for getting tweets and {round(predict_time, 3)}s for prediction")
-        #st.write(stats)
-
-        tweets = ac.get_flattened_tweets(raw_tweets)[["full_text", "is_retweet", "n_video_media", "n_photo_media",	"retweet_count","favorite_count",	"replies"]]
-        st.table(tweets)
-
         akun = ""
 #
 with tab3:
@@ -231,12 +246,22 @@ with tab3:
             st.subheader("Waktu prediksi:")
             st.write(f"{round(predict_file_time, 3)}s")
             
-            st.table(tweets_Genuine[['Text','Username', 'Detected as Buzzer']])
+            if "category" not in st.session_state:
+                st.session_state.category = "All"
+            st.radio(
+                "Tampilkan Tweet per kategori:",
+                key="category",
+                options=["All", "Buzzer", "Genuine"],
+            )
+
+            if st.session_state.category != "Buzzer":
+                st.table(tweets_Genuine[['Text','Username', 'Detected as Buzzer']])
 
             if tweets_df_with_pred.empty:
                 st.write("Topik ini kemungkinan besar mengandung Pembentukan Opini publik")
             else:
-                st.table(tweets_buzzer[['Text','Username', 'Detected as Buzzer']])
+                if st.session_state.category != "Genuine":
+                    st.table(tweets_buzzer[['Text','Username', 'Detected as Buzzer']])
 
             col1.metric("Talker", tweets_df_with_pred.shape[0])
             col2.metric("Buzzer", tweets_buzzer.shape[0])
