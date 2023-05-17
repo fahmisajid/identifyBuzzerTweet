@@ -21,3 +21,5 @@ streamlit run accountbuzz.py
 4. Access the Web UI on this address: http://localhost:8501/
 
 5. You can access testing data on sample.txt file
+
+6. Optionally you can also directly the deployed application on this address if you don't want to install your self: https://akhmadmizkat-identifybuzzertweet-accountbuzz-bbnhl3.streamlit.app/
